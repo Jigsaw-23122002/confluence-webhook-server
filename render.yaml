@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: confluence-webhook-server
+    runtime: node
+    buildCommand: npm install
+    startCommand: node server.js
+    env: node
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: NODE_ENV
+        value: production
+    plan: free # Use the free tier for testing
