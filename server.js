@@ -79,7 +79,7 @@ app.get("/scrape-space", async (req, res) => {
       if (response.data.results[i]?.body?.storage?.value) {
         const pageContent = response.data.results[i].body.storage.value;
         const childUrls = detectAndCategorizeLinks(pageContent);
-        requiredResponse.push({ pageContent, childUrls });
+        requiredResponse.push({ result: response.data.results[i], childUrls });
       }
     }
     res.status(200).json(requiredResponse);
