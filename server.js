@@ -2,6 +2,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 require("dotenv").config();
 const axios = require("axios");
+const cors = require("cors");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 
 const uri = process.env.MONGO_DB_URL;
@@ -22,6 +23,13 @@ const PORT = 3000;
 
 // Middleware to parse JSON payloads
 app.use(bodyParser.json());
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 app.post("/webhook", async (req, res) => {
   try {
