@@ -23,22 +23,24 @@ const PORT = 3000;
 // Middleware to parse JSON payloads
 app.use(bodyParser.json());
 
-app.post("/webhook", (req, res) => {
+app.post("/webhook", async (req, res) => {
   try {
-    const event = req.body;
-    console.log("Received webhook event: ", event);
-    const pageId = event.page.id;
-    console.log("Page id: ", pageId);
+    const page_details = req.body;
+    page_details["edited_on"] = new Date().toISOString().split("T")[0];
 
-    // Handle different events (page created, updated, deleted)
-    if (event.eventType === "page_created") {
-      console.log("Page created: ", event.page.title);
-    } else if (event.eventType === "page_updated") {
-      console.log("Page updated: ", event.page.title);
-    } else if (event.eventType === "page_deleted") {
-      console.log("Page deleted: ", event.page.title);
+    console.log(page_details);
+    const database = client.db("projectZPlus");
+    const collection = database.collection("updated_pages");
+    const exists = await collection.findOne(page_details);
+    if (exists) {
+      return res.status(400).json({
+        status: "success",
+        exists,
+      });
+    } else {
+      const result = await collection.insertOne(page_details);
+      return res.status(200).json({ status: "success", result });
     }
-    res.status(200).send("Webhook received");
   } catch (error) {
     console.log(error);
     return res.status(400).json({
