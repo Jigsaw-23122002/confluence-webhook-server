@@ -26,8 +26,8 @@ app.use(bodyParser.json());
 app.post("/webhook", (req, res) => {
   try {
     const event = req.body;
-    const pageId = event.page.id;
     console.log("Received webhook event: ", event);
+    const pageId = event.page.id;
     console.log("Page id: ", pageId);
 
     // Handle different events (page created, updated, deleted)
