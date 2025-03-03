@@ -111,6 +111,27 @@ app.get("/get-on-boarded-spaces", async (req, res) => {
   }
 });
 
+app.get("/pages-edited-today", async (req, res) => {
+  try {
+    const database = client.db("projectZPlus");
+    const collection = database.collection("updated_pages");
+    const today = new Date().toISOString().split("T")[0];
+    console.log(today);
+    const data = await collection
+      .find({
+        edited_on: today,
+      })
+      .toArray();
+    return res.status(200).json({ status: "success", data });
+  } catch (error) {
+    console.log(error);
+    return res.status(400).json({
+      status: "error",
+      message: "Internal Server Error",
+    });
+  }
+});
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
