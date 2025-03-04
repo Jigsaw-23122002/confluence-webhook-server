@@ -4,6 +4,7 @@ require("dotenv").config();
 const axios = require("axios");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion } = require("mongodb");
+const cron = require("node-cron");
 
 const uri = process.env.MONGO_DB_URL;
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -29,6 +30,76 @@ app.use(
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
+);
+
+async function scrapeEditedPages() {
+  try {
+    const database = client.db("projectZPlus");
+    const collection = database.collection("updated_pages");
+    const updatedPages = await collection
+      .find({
+        edited_on: new Date().toISOString().split("T")[0],
+      })
+      .toArray();
+    updatedPages.forEach(async (updatedPage) => {
+      const page_url = updatedPage.url;
+      const space_id = updatedPage.spaceId;
+      const page_id = updatedPage.pageId;
+      const baseUrlRegex = page_url.match(/^(https:\/\/[^/]+\/wiki)/)
+        ? page_url.match(/^(https:\/\/[^/]+\/wiki)/)[1]
+        : null;
+      const response = await axios.get(
+        `${baseUrlRegex}/rest/api/content/${page_id}`,
+        {
+          headers: {
+            Authorization: `Basic ${auth}`,
+            "Content-Type": "application/json",
+          },
+          params: {
+            expand: "body.storage,version,space,history",
+          },
+        }
+      );
+      if (response.data.body?.storage?.value) {
+        const database = client.db("projectZPlus");
+        const collection = database.collection("warehoused_data");
+        const exists = await collection.findOne({
+          key: `${space_id}/${page_id}`,
+        });
+        if (exists) {
+          const data = await collection.updateOne(
+            {
+              key: `${space_id}/${page_id}`,
+            },
+            {
+              $set: { content: response.data.body.storage.value },
+            }
+          );
+          console.log(data);
+        } else {
+          const data = await collection.insertOne({
+            key: `${space_id}/${page_id}`,
+            content: response.data.body.storage.value,
+          });
+          console.log(data);
+        }
+      }
+    });
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+cron.schedule(
+  "22 19 * * *",
+  () => {
+    console.log("Running cron job at 7:12 PM IST");
+    scrapeEditedPages();
+  },
+  {
+    scheduled: true,
+    timezone: "Asia/Kolkata", // Ensures it runs in IST
+  }
 );
 
 app.post("/webhook", async (req, res) => {
